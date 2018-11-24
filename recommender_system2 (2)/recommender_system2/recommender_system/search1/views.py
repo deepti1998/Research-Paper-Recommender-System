@@ -6,13 +6,31 @@ from nltk.tokenize import word_tokenize
 import re
 from django.conf import settings
 import requests
+from urllib import request
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.template import loader
 from django.views.decorators.csrf import csrf_exempt
 from bs4 import BeautifulSoup
 
+from math import log
 
+
+
+def cal_tf(kword, url):
+    k = Keywords_Count.objects.get(keyword = kword, url = url)
+    count = k.count
+    ke = Urls.obejects.get(url = url)
+    count_doc = ke.count
+    tf = count/count_doc
+    return tf
+
+
+def cal_idf(kword):
+     count_word_col = Keywords_Count.objects.filter(keyword = kword).count() #no of documents containing keyword
+     len_col = Urls.objects.all().count() #no of total documents in db
+     idf = log(len_col/count_word_col)
+     return idf
 
 @csrf_exempt
 def index(keywords,page):
@@ -28,7 +46,7 @@ def index(keywords,page):
                 dict[word] = 1
             else:
                 dict[word] = dict[word] + 1
-        print(dict)
+        #print(dict)
 
     return dict
 
@@ -36,13 +54,13 @@ def index(keywords,page):
 def crawl(visited_link, links, keywords, depth):
     if depth == 2:
         return {}
-
+    print(visited_link)
     new_links=[]
     dict1={}
     for link in links:
 
         if link not in visited_link:
-            visited_link += link
+            visited_link.append(link)
 
            # print(link)
             dict3 = link.split(".")
@@ -55,13 +73,16 @@ def crawl(visited_link, links, keywords, depth):
                 # if requests.head(link).headers['Content-Type'] == "application/pdf":
                 #     pass
                 if page.status_code==200:
-                    page = BeautifulSoup(page.text,'html.parser')
+                    page = BeautifulSoup(page.text, "lxml")
+                    [x.extract() for x in page.findAll(['script', 'style'])]
+                    page1 = page.text.split()
+                    doc_count = len(page1)
                     dict = {}
                     dict.update(index(keywords,page))
-                    print(dict)
+                    #print(dict)
                     if len(dict)!=0:
                         dict1[link]=dict
-                        print(dict1)
+                        #print(dict1)
                         if depth+1 == 2:
                             continue
                         if depth == 1:
@@ -77,7 +98,8 @@ def crawl(visited_link, links, keywords, depth):
             except Exception as error:
                 pass
 
-#    print(len(dict1))
+    print(len(dict1))
+    print(dict1)
     dict1.update(crawl(visited_link,new_links,keywords,depth+1))
     return dict1
 
@@ -133,7 +155,16 @@ def find_results(query):
             try:
                 durls = Urls.objects.get(url=key)
             except Exception as error:
-                durls = Urls(url=key,title="hey ")
+                soup = BeautifulSoup(request.urlopen(key))
+                ti = soup.title.string
+                page = requests.get(key)
+                if page.status_code==200:
+                    page = BeautifulSoup(page.text, "lxml")
+                    [x.extract() for x in page.findAll(['script', 'style'])]
+                    page1 = page.text.split()
+                    doc_count = len(page1)
+                #print(word+": "+ti)
+                durls = Urls(url=key,title=ti,count=doc_count)
                 durls.save()
                 durls = Urls.objects.get(url=key)
 
@@ -142,13 +173,16 @@ def find_results(query):
             try:
                 da=Keywords_Count.objects.get(keyword=dword,url=durls)
             except Exception as error:
-                da=Keywords_Count(keyword=dword,url=durls,count=count)
+                #initially count store
+                count_td = cal_tf(dword,durls)
+                da=Keywords_Count(keyword=dword,url=durls,count=count,tf_idf= count_td)
                 da.save()
         if query not in urlv.keys():
             durls = Urls.objects.get(url=key)
             dword = Keywords_Search.objects.get(keyword=query)
             try:
                 da=Keywords_Count.objects.get(keyword=dword,url=durls)
+                print(da)
             except Exception as error:
                 da=Keywords_Count(keyword=dword,url=durls,count=1)
                 da.save()
@@ -157,19 +191,25 @@ def find_results(query):
 
 @background(schedule=1)
 def find_results1():
-    query_set= Keywords_Search.objects.all()
-    list = []
-    for query in query_set:
-        list.append(query.keyword)
-    list1 = []
+
     while True:
+        while len(list)==0:
+            query_set = Keywords_Search.objects.all()
+            list = []
+            for query in query_set:
+                list.append(query.keyword)
+            list1 = []
+
         while len(list):
-            print(list)
+           # print(list)
             for word in list:
-                 print(word)
-                 find_results(word)
-                 key=Keywords_Search(keyword = word, search=True)
-                 key.save()
+                 k = Keywords_Search.objects.get(keyword = word)
+                 if(k.search == False):
+                      print(word)
+                      find_results(word)
+                      k.search = True
+                      k.save()
+
             query_set= Keywords_Search.objects.all()
             list2 = []
             for query in query_set:
@@ -177,6 +217,9 @@ def find_results1():
             list1.append(list)
             list =list2[len(list1):len(list2)]
             #list = [ x for x in list2 if not in list1]
+
+
+
 
 
 
@@ -207,8 +250,9 @@ def get_data(request):
         try:
             key=Keywords_Search.objects.get(keyword=query)
             if key.search:
-                list3 = Keywords_Count.objects.all().filter(keyword=query).order_by('-count')
-                #   print(len(list3))
+                print(query)
+                list3 = Keywords_Count.objects.all().filter(keyword=query).order_by('-tf-idf')
+                print(len(list3))
                 for key in list3:
                     list += [key.url.url]
                     list1 += [key.url.title]
@@ -219,8 +263,9 @@ def get_data(request):
             p.save()
             ad=1
         if ad==1:
+            print("hgjh")
             query=query.replace(' ','+')
-            req = requests.get("http://api.springernature.com/metadata/json?q=keyword:" + query + "&api_key=a22eb2a96a01b2bbd164fc11ca2f07a3")
+            req = requests.get("http://api.springernature.com/metadata/json?q=keyword:" + query + "&p=100&api_key=a22eb2a96a01b2bbd164fc11ca2f07a3")
             req = req.json()
             length = len(req['records'])
             # extract all urls
@@ -234,10 +279,3 @@ def get_data(request):
     else:
         template = loader.get_template('get_query.html')
         return HttpResponse(template.render())
-
-
-
-
-
-
-
