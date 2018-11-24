@@ -1,0 +1,45 @@
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'search1/searchpage.css'%}" />
+<link rel="stylesheet" type="text/css" href="{% static 'search1/w3.css'%}" />
+
+<style>
+	@-webkit-keyframes bg
+	{
+		0%{background-color:#FF33B5;opacity:1;}
+		20%{background-color:#5DADE2;}
+		40%{background-color:#663399;}
+		60%{background-color:purple;}
+		80%{background-color:blue;}
+		100%{background-color:#FF33B5;}
+	}
+
+	.home{
+	 	height: 600px;
+     background-color:#9B59B6;
+     -webkit-animation :bg 6s;
+     -webkit-animation-iteration-count:infinite;
+	 }
+</style>
+
+<!-- First Grid: Logo & About -->
+
+  <div style="height:800px ;padding:150px 0px; float:left" class="w3-quarter w3-teal"  >
+<h2>RESEARCH <br> PAPER <br> RECOMMENDER <br> SYSTEM</h2>
+    </div>
+     <div class="w3-threequarter " style="height:800px ; float:center ;padding:250px 0px">
+
+
+             <form class="w3-container w3-block " method='post' action="/search1/getquery/" method="get">
+         <input class="w3-input w3-hover-light-grey " type="text"  name="q" placeholder="Search">
+          <input class="w3-input w3-button w3-dark-grey" type="submit" value="+Search">
+     </form>
+         </div>
+<!-- <div class="w3-quarter w3-teal" style="height:600px ; float:right">
+<h2>RESEARCH PAPER RECOMMENDER SYSTEM</h2>
+    </div>-->
+
+
+<!--<img src="{% static 'images/icon.jpg' %}" alt="main icon" height="100px" width="645x">
+<form method='post' action="/search1/getquery/" method="get">
+
+    </form>-->

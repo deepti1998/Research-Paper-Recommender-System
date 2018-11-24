@@ -1,0 +1,37 @@
+body {
+    background-color: white;
+    text-align: center;
+    font-size: medium;
+    margin-left: 350px;
+    margin-right: 350px;
+    margin-bottom: 250px;
+    margin-top: 250px;
+    font-family: Algerian;
+    place-self: flex-end;
+}
+
+h1{
+    color: blue;
+}
+
+p{
+    font-family: Calibri;
+    font-size: small;
+    color: black;
+    text-align: justify;
+}
+
+
+input{
+    width: 100%;
+    padding: auto;
+    margin: fill;
+    box-sizing: padding-box;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    align-self: center;
+    font-weight: bold;
+
+}

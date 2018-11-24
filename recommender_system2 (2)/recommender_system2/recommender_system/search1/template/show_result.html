@@ -1,0 +1,21 @@
+
+<!DOCTYPE html>
+{% load staticfiles %}
+
+
+<link rel="stylesheet" type="text/css" href="{% static 'search1/w3.css'%}" />
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Show</title>
+</head>
+<body class="w3-blue" style="padding:30px">
+<ul class="w3-ul w3-card-4 w3-white">
+         {% for item in data %}
+            <li class="w3-hover-animate-zoom">
+                <a href = '{{item.0}}' >{{item.1}} </a></li>
+         {% endfor %}
+</ul>
+</body>
+</html>
+
